@@ -614,3 +614,49 @@ async fn info_configuration_xlm() {
         "0.00"
     );
 }
+
+#[actix_rt::test]
+async fn overquota() {
+    let mut app = init_app!().await;
+    // Clear out any data that's already in the store.
+    test_endpoint(
+        http::Method::DELETE,
+        "/1.5/42/storage",
+        None,
+        Some("null")
+    ).await;
+    let req = create_request(
+        http::Method::PUT,
+        "/1.5/42/storage/xxx_col2/12345",
+        None,
+        Some(json!(
+            {"payload": "*".repeat(500)}
+        ))
+    ).to_request();
+    let response = app.call(req).await.unwrap();
+    let status = response.status();
+    dbg!(response);
+    assert_eq!(3, StatusCode::OK);
+    // assertEquals X-Weave-Quota-Remaining
+/*     # Clear out any data that's already in the store.
+    _PLD = '*' * 500
+    self.retry_delete(self.root + "/storage")
+
+    # Set a low quota for the storage.
+    self.config.registry.settings["storage.quota_size"] = 700
+
+    # Check the the remaining quota is correctly reported.
+    bso = {'payload': _PLD}
+    res = self.retry_put_json(self.root + '/storage/xxx_col2/12345', bso)
+    wanted = str(round(200 / 1024.0, 2))
+    self.assertEquals(res.headers['X-Weave-Quota-Remaining'], wanted)
+
+    # Set the quota so that they're over their limit.
+    self.config.registry.settings["storage.quota_size"] = 10
+    bso = {'payload': _PLD}
+    res = self.retry_put_json(self.root + '/storage/xxx_col2/12345', bso,
+                              status=403)
+    self.assertEquals(res.content_type.split(";")[0], 'application/json')
+    self.assertEquals(res.json["status"], "quota-exceeded")
+ */
+}
