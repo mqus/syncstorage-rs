@@ -73,7 +73,7 @@ impl Default for Settings {
             statsd_port: 8125,
             statsd_label: "syncstorage".to_string(),
             human_logs: false,
-            enable_quota: false,
+            enable_quota: true,
         }
     }
 }
@@ -114,7 +114,7 @@ impl Settings {
         s.set_default("statsd_host", "localhost")?;
         s.set_default("statsd_port", 8125)?;
         s.set_default("statsd_label", "syncstorage")?;
-        s.set_default("enable_quota", false)?;
+        s.set_default("enable_quota", true)?;
 
         // Merge the config file if supplied
         if let Some(config_filename) = filename {

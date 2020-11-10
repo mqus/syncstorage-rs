@@ -838,6 +838,7 @@ impl MysqlDb {
         user_id: u32,
         collection_id: i32,
     ) -> Result<SyncTimestamp> {
+        println!("QUOTA ENABLED? {:}", self.quota_enabled);
         let quota = if self.quota_enabled {
             self.calc_quota_usage_sync(user_id, collection_id)?
         } else {

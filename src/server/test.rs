@@ -11,6 +11,7 @@ use hawk::{self, Credentials, Key, RequestBuilder};
 use hkdf::Hkdf;
 use hmac::{Hmac, Mac, NewMac};
 use lazy_static::lazy_static;
+use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use serde_json::json;
 use sha2::Sha256;
@@ -23,7 +24,11 @@ use crate::db::pool_from_settings;
 use crate::db::results::{DeleteBso, GetBso, PostBsos, PutBso};
 use crate::db::util::SyncTimestamp;
 use crate::settings::{test_settings, Secrets, ServerLimits};
-use crate::web::{auth::HawkPayload, extractors::BsoBody, X_LAST_MODIFIED};
+use crate::web::{
+    auth::HawkPayload,
+    extractors::BsoBody,
+    X_LAST_MODIFIED,
+};
 
 lazy_static! {
     static ref SERVER_LIMITS: Arc<ServerLimits> = Arc::new(ServerLimits::default());
@@ -85,8 +90,12 @@ fn create_request(
     path: &str,
     headers: Option<HashMap<&'static str, String>>,
     payload: Option<serde_json::Value>,
+    settings: Option<Settings>,
 ) -> test::TestRequest {
-    let settings = get_test_settings();
+    let settings = match settings {
+        Some(s) => s,
+        None => get_test_settings(),
+    };
     let mut req = test::TestRequest::with_uri(path)
         .method(method.clone())
         .header(
@@ -170,7 +179,7 @@ async fn test_endpoint(
 ) {
     let mut app = init_app!().await;
 
-    let req = create_request(method, path, None, None).to_request();
+    let req = create_request(method, path, None, None, None).to_request();
     let sresp = app
         .call(req)
         .await
@@ -193,7 +202,7 @@ where
     let limits = Arc::new(settings.limits.clone());
     let mut app = test::init_service(build_app!(get_test_state(&settings).await, limits)).await;
 
-    let req = create_request(method, path, None, None).to_request();
+    let req = create_request(method, path, None, None, None).to_request();
     let sresponse = match app.call(req).await {
         Ok(v) => v,
         Err(e) => {
@@ -226,7 +235,7 @@ async fn test_endpoint_with_body(
     let settings = get_test_settings();
     let limits = Arc::new(settings.limits.clone());
     let mut app = test::init_service(build_app!(get_test_state(&settings).await, limits)).await;
-    let req = create_request(method, path, None, Some(body)).to_request();
+    let req = create_request(method, path, None, Some(body), None).to_request();
     let sresponse = app
         .call(req)
         .await
@@ -450,6 +459,7 @@ async fn invalid_content_type() {
             ttl: Some(31_536_000),
             ..Default::default()
         })),
+        None,
     )
     .to_request();
 
@@ -473,6 +483,7 @@ async fn invalid_content_type() {
             ttl: Some(31_536_000),
             ..Default::default()
         }])),
+        None,
     )
     .to_request();
 
@@ -497,6 +508,7 @@ async fn invalid_batch_post() {
             {"id": "123", "payload": "xxx", "sortindex": 23},
             {"id": "456", "payload": "xxxasdf", "sortindex": 23}
         ])),
+        None,
     )
     .to_request();
 
@@ -524,6 +536,7 @@ async fn accept_new_or_dev_ios() {
         "/1.5/42/info/collections",
         Some(headers),
         None,
+        None,
     )
     .to_request();
     let response = app.call(req).await.unwrap();
@@ -541,6 +554,7 @@ async fn accept_new_or_dev_ios() {
         "/1.5/42/info/collections",
         Some(headers),
         None,
+        None,
     )
     .to_request();
     let response = app.call(req).await.unwrap();
@@ -557,6 +571,7 @@ async fn accept_new_or_dev_ios() {
         http::Method::GET,
         "/1.5/42/info/collections",
         Some(headers),
+        None,
         None,
     )
     .to_request();
@@ -578,6 +593,7 @@ async fn reject_old_ios() {
         "/1.5/42/info/collections",
         Some(headers.clone()),
         None,
+        None,
     )
     .to_request();
     let response = app.call(req).await.unwrap();
@@ -590,6 +606,7 @@ async fn reject_old_ios() {
         Some(json!([
             {"id": "123", "payload": "xxx", "sortindex": 23},
         ])),
+        None,
     )
     .to_request();
     let response = app.call(req).await.unwrap();
@@ -602,7 +619,7 @@ async fn reject_old_ios() {
 async fn info_configuration_xlm() {
     let mut app = init_app!().await;
     let req =
-        create_request(http::Method::GET, "/1.5/42/info/configuration", None, None).to_request();
+        create_request(http::Method::GET, "/1.5/42/info/configuration", None, None, None).to_request();
     let response = app.call(req).await.unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let xlm = response.headers().get(X_LAST_MODIFIED);
@@ -613,6 +630,11 @@ async fn info_configuration_xlm() {
             .expect("Couldn't parse X-Last-Modified"),
         "0.00"
     );
+}
+
+#[derive(Deserialize, Debug)]
+struct OverquotaResponse {
+    status: String,
 }
 
 #[actix_rt::test]
@@ -631,12 +653,46 @@ async fn overquota() {
         None,
         Some(json!(
             {"payload": "*".repeat(500)}
-        ))
+        )),
+        None,
     ).to_request();
     let response = app.call(req).await.unwrap();
     let status = response.status();
-    dbg!(response);
-    assert_eq!(3, StatusCode::OK);
+    //dbg!(response);
+    assert_eq!(status, StatusCode::OK);
+    //dbg!(response);
+    // set the quota low
+    let mut settings = get_test_settings();
+    settings.enable_quota = true;
+    settings.limits.max_quota_limit = 5;
+    let req2 = create_request(
+        http::Method::PUT,
+        "/1.5/42/storage/xxx_col2/12345",
+        None,
+        Some(json!(
+            {"payload": "*".repeat(500)}
+        )),
+        Some(settings)
+    ).to_request();
+    let response2 = app.call(req2).await.unwrap();
+    let status2 = response2.status();
+    //dbg!(response);
+    assert_eq!(status2, StatusCode::FORBIDDEN);
+    let body = test::read_body(response).await;
+    match serde_json::from_slice::<OverquotaResponse>(&body) {
+        Ok(v) => assert_eq!(v.status, "quota-exceeded"),
+        Err(e) => {
+            panic!("test_endpoint_with_response: serde_json failed: {:?}", e);
+        }
+    };
+
+    // match quota_header {
+    //     None => {
+    //         dbg!(response);
+    //     }
+    //     Some(x) => assert_eq!(x, "299"),
+    // };
+    //response.header
     // assertEquals X-Weave-Quota-Remaining
 /*     # Clear out any data that's already in the store.
     _PLD = '*' * 500
