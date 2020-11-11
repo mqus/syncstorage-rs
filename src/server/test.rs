@@ -77,10 +77,15 @@ async fn get_test_state(settings: &Settings) -> ServerState {
 macro_rules! init_app {
     () => {
         async {
-            crate::logging::init_logging(false).unwrap();
             let settings = get_test_settings();
-            let limits = Arc::new(settings.limits.clone());
-            test::init_service(build_app!(get_test_state(&settings).await, limits)).await
+            init_app!(settings).await
+        }
+    };
+    ($settings:expr) => {
+        async {
+            crate::logging::init_logging(false).unwrap();
+            let limits = Arc::new($settings.limits.clone());
+            test::init_service(build_app!(get_test_state(&$settings).await, limits)).await
         }
     };
 }
@@ -639,7 +644,10 @@ struct OverquotaResponse {
 
 #[actix_rt::test]
 async fn overquota() {
-    let mut app = init_app!().await;
+    let mut settings = get_test_settings();
+    settings.enable_quota = true;
+    settings.limits.max_quota_limit = 5;
+    let mut app = init_app!(settings).await;
     // Clear out any data that's already in the store.
     test_endpoint(
         http::Method::DELETE,
