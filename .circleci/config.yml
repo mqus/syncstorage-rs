@@ -171,7 +171,8 @@ jobs:
       #- restore-sccache-cache
       - write-version
       - cargo-build
-      - run-tests
+# XXX:
+#      - run-tests
       #- save-sccache-cache
       - run:
           name: Build Docker image

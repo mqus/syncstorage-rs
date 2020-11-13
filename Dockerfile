@@ -1,26 +1,31 @@
-FROM rust as planner
+FROM rust:1.47-buster as planner
 WORKDIR /app
 RUN cargo install cargo-chef
 COPY . .
 RUN cargo chef prepare  --recipe-path recipe.json
 
-FROM rust as cacher
+FROM rust:1.47-buster as cacher
 WORKDIR /app
 RUN cargo install cargo-chef
-COPY --from=planner /app/recipe.json recipe.json
-RUN cargo chef cook --release --recipe-path recipe.json
-
-FROM rust:1.46-buster as builder
-WORKDIR /app
-ADD . /app
-COPY --from=cacher /app/target target
-ENV PATH=$PATH:/root/.cargo/bin
-# temp removed --no-install-recommends due to CI docker build issue
 RUN apt-get -q update && \
     apt-get -q install -y --no-install-recommends default-libmysqlclient-dev cmake golang-go python3-dev python3-pip && \
     pip3 install tokenlib && \
-    rm -rf /var/lib/apt/lists/* && \
-    cd /app && \
+    rm -rf /var/lib/apt/lists/*
+COPY --from=planner /app/recipe.json recipe.json
+RUN cargo chef cook --release --recipe-path recipe.json
+
+FROM rust:1.47-buster as builder
+WORKDIR /app
+ADD . /app
+COPY --from=cacher /app/target target
+COPY --from=cacher /usr/local/cargo /usr/local/cargo
+ENV PATH=$PATH:/root/.cargo/bin
+RUN apt-get -q update && \
+    apt-get -q install -y --no-install-recommends default-libmysqlclient-dev cmake golang-go python3-dev python3-pip && \
+    pip3 install tokenlib && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN cd /app && \
     mkdir -m 755 bin
 
 RUN \
