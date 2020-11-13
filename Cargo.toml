@@ -82,3 +82,6 @@ no_auth = []
 
 [[bin]]
 name = "purge_ttl"
+# explicit path only needed for cargo chef:
+# https://github.com/LukeMathWalker/cargo-chef/issues/14
+path = "src/bin/purge_ttl.rs"
