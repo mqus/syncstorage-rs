@@ -295,6 +295,12 @@ workflows:
           filters:
             tags:
               only: /.*/
+      - e2e-tests:
+          requires:
+            - build-and-test
+          filters:
+            tags:
+              only: /.*/
       - deploy:
           requires:
             - e2e-tests
