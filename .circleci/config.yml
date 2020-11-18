@@ -84,19 +84,8 @@ commands:
       - run:
           name: e2e tests
           command: >
-<<<<<<< Updated upstream
-            /usr/local/bin/docker-compose
-               -f docker-compose.yaml
-               -f docker-compose.e2e.yaml
-               up
-               --exit-code-from server-syncstorage
-               --abort-on-container-exit
-          environment:
-              SYNCSTORAGE_RS_IMAGE: app:build
-=======
                python3 tools/integration_tests/run.py "http://localhost:8000#secret0"
 
->>>>>>> Stashed changes
   setup-sccache:
     steps:
       - run:
