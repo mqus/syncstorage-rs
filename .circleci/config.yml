@@ -170,7 +170,7 @@ jobs:
 
   e2e-tests:
     docker:
-      - image: docker/syncstorage-rs:latest
+      - image: mozilla/syncstorage-rs:latest
         auth:
           username: $DOCKER_USER
           password: $DOCKER_PASS
