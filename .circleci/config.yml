@@ -83,8 +83,10 @@ commands:
     steps:
       - run:
           name: e2e tests
-          command: >
-               cd /tmp && python3 /app/tools/integration_tests/run.py "http://localhost:8000#secret0"
+          command: |
+               sudo mkdir -p /app/bin /app/project
+               sudo chown app:app /app/project
+               python3 /app/tools/integration_tests/run.py "http://localhost:8000#secret0"
 
   setup-sccache:
     steps:
