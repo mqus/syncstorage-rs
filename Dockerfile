@@ -7,8 +7,8 @@ RUN apt-get -q update && \
     apt-get -q install -y --no-install-recommends default-libmysqlclient-dev cmake golang-go python3-dev python3-pip && \
     pip3 install tokenlib && \
     rm -rf /var/lib/apt/lists/* && \
-    cd /app && \
-    mkdir -m 755 bin
+    mkdir -mp 755 /app/bin /app/profile && \
+    chown app:app /app /app/profile
 
 RUN \
     cargo --version && \
@@ -31,7 +31,6 @@ COPY --from=builder /app/version.json /app
 COPY --from=builder /app/spanner_config.ini /app
 COPY --from=builder /app/tools/spanner /app/tools/spanner
 COPY --from=builder /app/tools/integration_tests /app/tools/integration_tests
-RUN mkdir -p /app/project && chmod 755 -R /app && chown -R app /
 
 USER app:app
 
