@@ -88,7 +88,6 @@ pub fn get_sync(auth: &BearerAuth) -> Result<TokenServerResult, ApiError> {
     ).map_err(|ee| {
         ApiError::from(ApiErrorKind::Internal(format!("Unable to decode token_data: {:}", ee)))
     })?;
-    println!("token data! {:?}", token_data);
     let email = format!("{:}@api.accounts.firefox.com", token_data.claims.sub);
 
     // TODO pull out of settings instead
