@@ -883,6 +883,8 @@ class TestStorage(StorageFunctionalTestCase):
         res = res.json
 
         # trying weird args and make sure the server returns 400s
+        # Note: "Offset" is a string since the bsoid could be anything.
+        # skipping that for now.
         args = ('newer', 'older', 'limit', 'offset')
         for arg in args:
             value = randtext()

@@ -84,7 +84,7 @@ commands:
       - run:
           name: e2e tests
           command: >
-            python3 tools/integration_tests/run.py "http://localhost:8000#secret0"
+               cd /tmp && python3 /app/tools/integration_tests/run.py "http://localhost:8000#secret0"
 
   setup-sccache:
     steps:
@@ -165,26 +165,32 @@ jobs:
       - write-version
       - cargo-build
       - run-tests
-      - run-e2e-tests
       #- save-sccache-cache
-      # TODO build the Docker image, but only if the branch is master.
-      # - run:
-      #     name: Build Docker image
-      #     command: docker build -t app:build .
-      # # save the built docker container into CircleCI's cache. This is
-      # # required since Workflows do not have the same remote docker instance.
-      # - run:
-      #     name: docker save app:build
-      #     command: |
-      #       mkdir -p /home/circleci/cache
-      #       docker save -o /home/circleci/cache/docker.tar "app:build"
-      # - run:
-      #     name: Save docker-compose config
-      #     command: cp docker-compose*.yaml /home/circleci/cache
-      # - save_cache:
-      #     key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_TAG }}-{{ epoch }}
-      #     paths:
-      #       - /home/circleci/cache
+
+
+  e2e-tests:
+    docker:
+      - image: mozilla/syncstorage-rs:latest
+        auth:
+          username: $DOCKER_USER
+          password: $DOCKER_PASS
+        environment:
+            SYNC_DATABASE_URL: mysql://test:test@127.0.0.1/syncstorage
+            RUST_BACKTRACE: 1
+            # XXX: begin_test_transaction doesn't play nice over threaded tests
+            RUST_TEST_THREADS: 1
+    steps:
+      - setup_remote_docker:
+          docker_layer_caching: true
+          = run:
+            name: Login to Dockerhub
+            command: |
+              if [ "${DOCKER_USER}" == "" ] || [ "${DOCKER_PASS}" == "" ]; then
+                echo "Skipping Login to DockerHub, credentials unavailable"
+              else
+                echo "${DOCKER_PASS}" | docker login -u="${DOCKER_USER}" --password-stdin
+              fi
+      - run-e2e-tests
 
   deploy:
     docker:
@@ -273,15 +279,21 @@ workflows:
           filters:
             tags:
               only: /.*/
-      - deploy:
+      - e2e-tests:
           requires:
             - build-and-test
           filters:
             tags:
               only: /.*/
+      - deploy:
+          requires:
+            - e2e-tests
+          filters:
+            tags:
+              only: /.*/
       - deploy-python-utils:
           requires:
-            - build-and-test
+            - e2e-tests
           filters:
             tags:
               only: /.*/
