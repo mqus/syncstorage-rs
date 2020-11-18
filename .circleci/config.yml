@@ -84,7 +84,7 @@ commands:
       - run:
           name: e2e tests
           command: >
-               python3 /app/tools/integration_tests/run.py "http://localhost:8000#secret0"
+               cd tools && python3 /app/tools/integration_tests/run.py "http://localhost:8000#secret0"
 
   setup-sccache:
     steps:
