@@ -24,7 +24,8 @@ RUN \
     apt-get -q update && \
     apt-get -q install -y build-essential default-libmysqlclient-dev libssl-dev ca-certificates libcurl4 python3-dev python3-pip && \
     pip3 install tokenlib && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* \
+    chmod 755 /app
 
 COPY --from=builder /app/bin /app/bin
 COPY --from=builder /app/version.json /app
