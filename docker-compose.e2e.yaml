@@ -11,12 +11,11 @@ services:
             sleep 15;
             /app/bin/syncstorage;
           "
-    server-syncstorage:
-        image: mozilla/server-syncstorage:latest
+    e2e:
         depends_on:
           - syncstorage-rs
         entrypoint: >
           /bin/ash -c "
             sleep 18;
-            /app/docker-entrypoint.sh test_endpoint http://syncstorage-rs:8000#secret0;
+            python3 /app/tools/integration_tests/run.py 'http://syncstorage-rs:8000#secret0'
           "
