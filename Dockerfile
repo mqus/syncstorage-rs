@@ -6,9 +6,7 @@ ENV PATH=$PATH:/root/.cargo/bin
 RUN apt-get -q update && \
     apt-get -q install -y --no-install-recommends default-libmysqlclient-dev cmake golang-go python3-dev python3-pip && \
     pip3 install tokenlib && \
-    rm -rf /var/lib/apt/lists/* && \
-    mkdir -mp 755 /app/bin /app/profile && \
-    chown app:app /app /app/profile
+    rm -rf /var/lib/apt/lists/*
 
 RUN \
     cargo --version && \
