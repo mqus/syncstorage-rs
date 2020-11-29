@@ -12,6 +12,7 @@ Mozilla Sync Storage built with [Rust](https://rust-lang.org).
 - [Local Setup](#local-setup)
   - [MySQL](#mysql)
   - [Spanner](#spanner)
+  - [Sqlite](#sqlite)
   - [Running via Docker](#running-via-docker)
   - [Connecting to Firefox](#connecting-to-firefox)
 - [Logging](#logging)
@@ -105,6 +106,15 @@ To point to a GCP hosted Spanner instance from your local machine, follow these 
 3. Open the Makefile and ensure you've correctly set you `PATH_TO_GRPC_CERT`.
 4. `make run_spanner`.
 5. Visit `http://localhost:8000/__heartbeat__` to make sure the server is running.
+
+### Sqlite
+
+Setting up the server with sqlite only requires a path to the database file, 
+which will be created automatically:
+
+`sqlite:path/syncdb.sqlite`
+
+This requires at least sqlite v3.24.0 to be installed on the host system.
 
 ### Running via Docker
 This requires access to the mozilla-rust-sdk which is now available at `/vendor/mozilla-rust-adk`.
