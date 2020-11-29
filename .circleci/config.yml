@@ -153,7 +153,7 @@ jobs:
             MYSQL_DATABASE: syncstorage
     steps:
       - setup_remote_docker:
-          docker_layer_caching: true
+          #docker_layer_caching: true
           = run:
             name: Login to Dockerhub
             command: |
@@ -204,7 +204,7 @@ jobs:
           RUST_TEST_THREADS: 1
     steps:
       - setup_remote_docker:
-          docker_layer_caching: true
+          # docker_layer_caching: true
           = run:
             name: Login to Dockerhub
             command: |
